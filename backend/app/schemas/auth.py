@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+from datetime import datetime
+from pydantic import BaseModel, Field, field_validator
 
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=50)
@@ -22,6 +23,13 @@ class UserOut(BaseModel):
     created_at: str | None = None
 
     model_config = {"from_attributes": True}
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def convert_datetime(cls, v):
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return v
 
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=2, max_length=50)

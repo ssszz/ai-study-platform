@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 
 class ExamOut(BaseModel):
@@ -13,6 +13,13 @@ class ExamOut(BaseModel):
     question_count: int = 0
     submitted: bool = False
     model_config = {"from_attributes": True}
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def convert_datetime(cls, v):
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return v
 
 class ExamCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
