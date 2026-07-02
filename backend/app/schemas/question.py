@@ -17,6 +17,8 @@ class QuestionListOut(BaseModel):
     level: str
     type: str
     title: str
+    options: list = []
+    correct_answer: list | str | bool | None = None
     score: int
     model_config = {"from_attributes": True}
 
