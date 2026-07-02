@@ -1,4 +1,3 @@
-from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, func
 from sqlalchemy.types import JSON
 from app.database import Base
