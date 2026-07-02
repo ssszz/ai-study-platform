@@ -24,6 +24,11 @@ export default function ExamManage() {
     api.get(`/questions?${p}`).then((r) => setQuestions(r.data));
   };
 
+  // Auto-refresh questions when filter changes
+  useEffect(() => {
+    if (showForm) fetchQuestions();
+  }, [filter.category_id, filter.level]);
+
   const handleCreate = async () => {
     if (form.question_ids.length === 0) { alert('请至少选择一道题目'); return; }
     await api.post('/exams', form);
@@ -84,9 +89,14 @@ export default function ExamManage() {
             {questions.map((q) => (
               <label key={q.id} className={`flex items-start gap-2 p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0 ${form.question_ids.includes(q.id) ? 'bg-blue-50' : ''}`}>
                 <input type="checkbox" checked={form.question_ids.includes(q.id)} onChange={() => toggleQuestion(q.id)} className="mt-0.5 text-blue-600 rounded" />
-                <div className="flex-1 text-sm">
-                  <span>{q.title}</span>
-                  <span className="text-xs text-gray-400 ml-2">({q.type === 'single' ? '单选' : q.type === 'multi' ? '多选' : '判断'} · {q.score}分)</span>
+                <div className="flex-1 text-sm min-w-0">
+                  <span className="block truncate">{q.title}</span>
+                  <span className="text-xs text-gray-400">
+                    {q.type === 'single' ? '单选' : q.type === 'multi' ? '多选' : '判断'} · {q.score}分
+                    <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${
+                      q.level === 'L1' ? 'bg-green-100 text-green-700' : q.level === 'L2' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                    }`}>{q.level === 'L1' ? '入门' : q.level === 'L2' ? '进阶' : '高级'}</span>
+                  </span>
                 </div>
               </label>
             ))}
