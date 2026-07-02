@@ -23,7 +23,7 @@ export default function ExamManage() {
   const [filter, setFilter] = useState({ category_id: '', level: '' });
   const [mode, setMode] = useState<'manual' | 'dist' | 'smart'>('manual');
   const [randomCount, setRandomCount] = useState(10);
-  const [smartTotal, setSmartTotal] = useState(30);
+  const [smartTargetScore, setSmartTargetScore] = useState(100);
 
   const fetchExams = () => { api.get('/exams').then((r) => setExams(r.data)); };
 
@@ -50,14 +50,14 @@ export default function ExamManage() {
     }
   }, [filter.category_id, filter.level, showForm]);
 
-  // Compute question counts per category × level from allQuestions
+  // Compute question counts and score info per category × level from allQuestions
   const distData = useMemo(() => {
-    const map: Record<string, Record<string, { count: number; ids: number[] }>> = {};
+    const map: Record<string, Record<string, { count: number; ids: number[]; totalScore: number }>> = {};
     for (const cat of categories) {
       map[cat.id] = {};
       for (const lv of levels) {
         const qs = allQuestions.filter((q) => q.category_id === cat.id && q.level === lv.value);
-        map[cat.id][lv.value] = { count: qs.length, ids: qs.map((q) => q.id) };
+        map[cat.id][lv.value] = { count: qs.length, ids: qs.map((q) => q.id), totalScore: qs.reduce((s, q) => s + q.score, 0) };
       }
     }
     return map;
@@ -79,30 +79,43 @@ export default function ExamManage() {
   };
 
   const handleSmartGenerate = () => {
-    // Distribute proportionally based on available question counts
-    const catLvPairs: { catId: string; lv: string; ids: number[] }[] = [];
+    // Build a map of questionId -> score
+    const scoreMap: Record<number, number> = {};
+    for (const q of allQuestions) scoreMap[q.id] = q.score;
+
+    // Collect all category×level buckets with their question IDs
+    const buckets: { catId: string; lv: string; ids: number[]; totalScore: number }[] = [];
+    let grandTotalScore = 0;
     for (const catId of Object.keys(distData)) {
       for (const lv of levels) {
         const d = distData[catId]?.[lv.value];
-        if (d && d.count > 0) catLvPairs.push({ catId, lv: lv.value, ids: d.ids });
+        if (d && d.count > 0) {
+          buckets.push({ catId, lv: lv.value, ids: d.ids, totalScore: d.totalScore });
+          grandTotalScore += d.totalScore;
+        }
       }
     }
-    const totalAvailable = catLvPairs.reduce((s, p) => s + p.ids.length, 0);
-    if (totalAvailable === 0) return;
-    const target = Math.min(smartTotal, totalAvailable);
+    if (grandTotalScore === 0) return;
 
-    const ids: number[] = [];
-    let remaining = target;
-    for (let i = 0; i < catLvPairs.length; i++) {
-      const pair = catLvPairs[i];
-      const isLast = i === catLvPairs.length - 1;
-      const quota = isLast ? remaining : Math.round(target * (pair.ids.length / totalAvailable));
-      const take = Math.min(quota, pair.ids.length, remaining);
-      const picked = [...pair.ids].sort(() => Math.random() - 0.5).slice(0, take);
-      ids.push(...picked);
-      remaining -= take;
+    const targetScore = Math.min(smartTargetScore, grandTotalScore);
+    const pickedIds: number[] = [];
+
+    // Distribute target score proportionally across buckets
+    for (const bucket of buckets) {
+      const bucketBudget = Math.round(targetScore * (bucket.totalScore / grandTotalScore));
+      if (bucketBudget <= 0) continue;
+
+      // Greedy pick questions from this bucket to meet score budget
+      const shuffled = [...bucket.ids].sort(() => Math.random() - 0.5);
+      let accumulated = 0;
+      for (const qid of shuffled) {
+        if (accumulated >= bucketBudget) break;
+        pickedIds.push(qid);
+        accumulated += scoreMap[qid] || 2;
+      }
     }
-    setForm((prev) => ({ ...prev, question_ids: [...new Set(ids)] }));
+
+    setForm((prev) => ({ ...prev, question_ids: [...new Set(pickedIds)] }));
   };
 
   const handleCreate = async () => {
@@ -274,17 +287,21 @@ export default function ExamManage() {
           {/* Smart mode */}
           {mode === 'smart' && (
             <div className="space-y-3">
-              <p className="text-xs text-gray-400">系统根据题库分布比例自动随机抽取题目</p>
+              <p className="text-xs text-gray-400">设定目标总分，系统按题库分布比例自动抽取题目凑到目标分数</p>
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-600">目标总题数：</span>
-                <input type="number" value={smartTotal} onChange={(e) => setSmartTotal(Number(e.target.value))}
-                  className="w-20 px-2 py-1.5 border border-gray-300 rounded-lg text-sm" min={1} />
+                <span className="text-sm text-gray-600">目标总分：</span>
+                <input type="number" value={smartTargetScore} onChange={(e) => setSmartTargetScore(Number(e.target.value))}
+                  className="w-20 px-2 py-1.5 border border-gray-300 rounded-lg text-sm" min={1} step={5} />
+                <span className="text-sm text-gray-500">分</span>
                 <button onClick={handleSmartGenerate} className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">智能生成</button>
-                <span className="text-xs text-gray-400">（共 {allQuestions.length} 题可用）</span>
+                <span className="text-xs text-gray-400">（题库共 {allQuestions.reduce((s, q) => s + q.score, 0)} 分可用）</span>
               </div>
-              <div className="text-xs text-gray-400">
-                已选 <span className="font-bold text-blue-600">{form.question_ids.length}</span> 题 · 总分 <span className="font-bold text-blue-600">{selectedScore}</span>
-              </div>
+              {form.question_ids.length > 0 && (
+                <div className="text-sm text-gray-500">
+                  已生成 <span className="font-bold text-blue-600">{form.question_ids.length}</span> 题 · 实际总分 <span className={`font-bold ${selectedScore === smartTargetScore ? 'text-green-600' : Math.abs(selectedScore - smartTargetScore) <= 5 ? 'text-yellow-600' : 'text-blue-600'}`}>{selectedScore}</span> 分
+                  {selectedScore !== smartTargetScore && <span className="text-xs text-gray-400 ml-1">（目标 {smartTargetScore} 分，误差 ±{(Math.abs(selectedScore - smartTargetScore))} 分）</span>}
+                </div>
+              )}
             </div>
           )}
 
