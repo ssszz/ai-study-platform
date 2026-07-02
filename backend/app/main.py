@@ -36,3 +36,11 @@ def on_startup():
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+# Production: serve frontend static files
+import os
+from fastapi.staticfiles import StaticFiles
+
+FRONTEND_DIST = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "frontend", "dist")
+if os.path.exists(FRONTEND_DIST):
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
