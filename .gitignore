@@ -8,6 +8,7 @@ dist/
 .vite/
 *.db-journal
 *.db-wal
+*.db-shm
 
 # Superpowers scratch
 .superpowers/
