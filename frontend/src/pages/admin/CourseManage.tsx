@@ -74,7 +74,7 @@ export default function CourseManage() {
           <thead className="bg-gray-50 text-left">
             <tr>
               <th className="px-4 py-3 font-medium text-gray-500">标题</th>
-              <th className="px-4 py-3 font-medium text-gray-500 w-24">领域</th>
+              <th className="px-4 py-3 font-medium text-gray-500 w-30">领域</th>
               <th className="px-4 py-3 font-medium text-gray-500 w-16">等级</th>
               <th className="px-4 py-3 font-medium text-gray-500 w-20">时长</th>
               <th className="px-4 py-3 font-medium text-gray-500 w-24">操作</th>
@@ -84,7 +84,7 @@ export default function CourseManage() {
             {courses.map((c) => (
               <tr key={c.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 text-gray-800">{c.title}</td>
-                <td className="px-4 py-3 text-xs text-gray-500">{c.category?.name}</td>
+                <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{c.category?.name}</td>
                 <td className="px-4 py-3"><span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{c.level}</span></td>
                 <td className="px-4 py-3 text-gray-500">{c.read_time_minutes}分钟</td>
                 <td className="px-4 py-3">

@@ -131,7 +131,7 @@ export default function QuestionManage() {
           <thead className="bg-gray-50 text-left">
             <tr>
               <th className="px-4 py-3 font-medium text-gray-500">题目</th>
-              <th className="px-4 py-3 font-medium text-gray-500 w-24">题型</th>
+              <th className="px-4 py-3 font-medium text-gray-500 w-30">题型</th>
               <th className="px-4 py-3 font-medium text-gray-500 w-16">等级</th>
               <th className="px-4 py-3 font-medium text-gray-500 w-16">分值</th>
               <th className="px-4 py-3 font-medium text-gray-500 w-24">操作</th>
