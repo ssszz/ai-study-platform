@@ -99,20 +99,37 @@ export default function ExamManage() {
 
     const targetScore = Math.min(smartTargetScore, grandTotalScore);
     const pickedIds: number[] = [];
+    let totalAccumulated = 0;
 
     // Distribute target score proportionally across buckets
-    for (const bucket of buckets) {
-      const bucketBudget = Math.round(targetScore * (bucket.totalScore / grandTotalScore));
+    for (let bi = 0; bi < buckets.length; bi++) {
+      const bucket = buckets[bi];
+      const isLast = bi === buckets.length - 1;
+      // Floor to avoid overshoot; last bucket gets the remainder
+      const bucketBudget = isLast
+        ? targetScore - totalAccumulated
+        : Math.floor(targetScore * (bucket.totalScore / grandTotalScore));
       if (bucketBudget <= 0) continue;
 
-      // Greedy pick questions from this bucket to meet score budget
+      // Greedy pick — only add if it doesn't push us too far over
       const shuffled = [...bucket.ids].sort(() => Math.random() - 0.5);
       let accumulated = 0;
       for (const qid of shuffled) {
+        const qs = scoreMap[qid] || 2;
+        // Accept if this question doesn't exceed budget, OR if we haven't reached 80% of budget yet
+        if (accumulated + qs > bucketBudget && accumulated >= bucketBudget * 0.8) continue;
         if (accumulated >= bucketBudget) break;
         pickedIds.push(qid);
-        accumulated += scoreMap[qid] || 2;
+        accumulated += qs;
       }
+      totalAccumulated += accumulated;
+    }
+
+    // Final trim: remove questions from the end until total fits target
+    while (totalAccumulated > targetScore && pickedIds.length > 0) {
+      const lastId = pickedIds[pickedIds.length - 1];
+      totalAccumulated -= scoreMap[lastId] || 2;
+      pickedIds.pop();
     }
 
     setForm((prev) => ({ ...prev, question_ids: [...new Set(pickedIds)] }));
