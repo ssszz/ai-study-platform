@@ -4,7 +4,16 @@ def grade_question(question_type: str, correct_answer, user_answer, max_score: i
         return (False, 0)
 
     if question_type == "true_false":
-        is_correct = bool(user_answer) == bool(correct_answer)
+        # Normalize to boolean: handle bool, int (0/1), and string ("true"/"false")
+        def to_bool(v):
+            if isinstance(v, bool):
+                return v
+            if isinstance(v, int):
+                return bool(v)
+            if isinstance(v, str):
+                return v.strip().lower() in ("true", "1", "yes", "对", "正确")
+            return bool(v)
+        is_correct = to_bool(user_answer) == to_bool(correct_answer)
         return (is_correct, max_score if is_correct else 0)
 
     elif question_type == "single":
