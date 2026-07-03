@@ -13,6 +13,27 @@ const levelBadge = (l: string) => {
   return m[l] || 'bg-gray-100 text-gray-600';
 };
 
+/** Find a subset of questions whose scores sum exactly to `target`. Brute-force for small gaps. */
+function findSubset(candidates: Question[], target: number, scoreMap: Record<number, number>): number[] {
+  if (target <= 0) return [];
+  // Sort by score ascending for better matching
+  const sorted = [...candidates].sort((a, b) => (scoreMap[a.id] || 2) - (scoreMap[b.id] || 2));
+
+  function dfs(start: number, remaining: number, path: number[]): number[] | null {
+    if (remaining === 0) return path;
+    if (remaining < 0 || start >= sorted.length) return null;
+    for (let i = start; i < sorted.length; i++) {
+      const qid = sorted[i].id;
+      const qs = scoreMap[qid] || 2;
+      if (qs > remaining) break; // sorted ascending, rest are larger
+      const result = dfs(i + 1, remaining - qs, [...path, qid]);
+      if (result) return result;
+    }
+    return null;
+  }
+  return dfs(0, target, []) || [];
+}
+
 export default function ExamManage() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -79,11 +100,10 @@ export default function ExamManage() {
   };
 
   const handleSmartGenerate = () => {
-    // Build a map of questionId -> score
     const scoreMap: Record<number, number> = {};
     for (const q of allQuestions) scoreMap[q.id] = q.score;
 
-    // Collect all category×level buckets with their question IDs
+    // Collect all category×level buckets
     const buckets: { catId: string; lv: string; ids: number[]; totalScore: number }[] = [];
     let grandTotalScore = 0;
     for (const catId of Object.keys(distData)) {
@@ -98,41 +118,80 @@ export default function ExamManage() {
     if (grandTotalScore === 0) return;
 
     const targetScore = Math.min(smartTargetScore, grandTotalScore);
-    const pickedIds: number[] = [];
-    let totalAccumulated = 0;
+    const pickedSet = new Set<number>();
+    let total = 0;
 
-    // Distribute target score proportionally across buckets
+    // Phase 1: proportional pick across buckets, never exceeding bucket budget
     for (let bi = 0; bi < buckets.length; bi++) {
       const bucket = buckets[bi];
       const isLast = bi === buckets.length - 1;
-      // Floor to avoid overshoot; last bucket gets the remainder
       const bucketBudget = isLast
-        ? targetScore - totalAccumulated
+        ? targetScore - total
         : Math.floor(targetScore * (bucket.totalScore / grandTotalScore));
       if (bucketBudget <= 0) continue;
 
-      // Greedy pick — only add if it doesn't push us too far over
       const shuffled = [...bucket.ids].sort(() => Math.random() - 0.5);
-      let accumulated = 0;
+      let acc = 0;
       for (const qid of shuffled) {
         const qs = scoreMap[qid] || 2;
-        // Accept if this question doesn't exceed budget, OR if we haven't reached 80% of budget yet
-        if (accumulated + qs > bucketBudget && accumulated >= bucketBudget * 0.8) continue;
-        if (accumulated >= bucketBudget) break;
-        pickedIds.push(qid);
-        accumulated += qs;
+        if (acc + qs > bucketBudget) continue; // never exceed bucket budget
+        pickedSet.add(qid);
+        acc += qs;
+        total += qs;
       }
-      totalAccumulated += accumulated;
     }
 
-    // Final trim: remove questions from the end until total fits target
-    while (totalAccumulated > targetScore && pickedIds.length > 0) {
-      const lastId = pickedIds[pickedIds.length - 1];
-      totalAccumulated -= scoreMap[lastId] || 2;
-      pickedIds.pop();
+    // Phase 2: try to fill the remaining gap exactly
+    const gap = targetScore - total;
+    if (gap > 0) {
+      // Find a single question that fills the gap exactly
+      const exactMatch = allQuestions.find(
+        (q) => !pickedSet.has(q.id) && q.score === gap
+      );
+      if (exactMatch) {
+        pickedSet.add(exactMatch.id);
+        total += exactMatch.score;
+      } else {
+        // Try swap: find an unpicked question whose score > gap, and a picked
+        // question whose score = (unpicked score - gap), then swap them
+        let swapped = false;
+        for (const q of allQuestions) {
+          if (swapped || pickedSet.has(q.id) || q.score <= gap) continue;
+          const neededRemove = q.score - gap;
+          for (const pid of pickedSet) {
+            if (scoreMap[pid] === neededRemove) {
+              pickedSet.delete(pid);
+              pickedSet.add(q.id);
+              total = total - neededRemove + q.score;
+              swapped = true;
+              break;
+            }
+          }
+        }
+        // If still not exact, try adding 2+ questions
+        if (!swapped) {
+          const remaining = allQuestions.filter((q) => !pickedSet.has(q.id));
+          // Simple brute force for small gaps: try picking questions to sum to gap
+          const fillIds = findSubset(remaining, gap, scoreMap);
+          for (const fid of fillIds) {
+            pickedSet.add(fid);
+            total += scoreMap[fid] || 2;
+          }
+        }
+      }
     }
 
-    setForm((prev) => ({ ...prev, question_ids: [...new Set(pickedIds)] }));
+    // Phase 3: if still over target, trim
+    if (total > targetScore) {
+      const idsArr = [...pickedSet];
+      while (total > targetScore && idsArr.length > 0) {
+        const lastId = idsArr.pop()!;
+        total -= scoreMap[lastId] || 2;
+        pickedSet.delete(lastId);
+      }
+    }
+
+    setForm((prev) => ({ ...prev, question_ids: [...pickedSet] }));
   };
 
   const handleCreate = async () => {
