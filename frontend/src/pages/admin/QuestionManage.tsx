@@ -131,7 +131,7 @@ export default function QuestionManage() {
           <thead className="bg-gray-50 text-left">
             <tr>
               <th className="px-4 py-3 font-medium text-gray-500">题目</th>
-              <th className="px-4 py-3 font-medium text-gray-500 w-20">题型</th>
+              <th className="px-4 py-3 font-medium text-gray-500 w-24">题型</th>
               <th className="px-4 py-3 font-medium text-gray-500 w-16">等级</th>
               <th className="px-4 py-3 font-medium text-gray-500 w-16">分值</th>
               <th className="px-4 py-3 font-medium text-gray-500 w-24">操作</th>
@@ -141,7 +141,7 @@ export default function QuestionManage() {
             {questions.map((q) => (
               <tr key={q.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 text-gray-800 max-w-md truncate">{q.title}</td>
-                <td className="px-4 py-3"><span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{typeLabel(q.type)}</span></td>
+                <td className="px-4 py-3 whitespace-nowrap"><span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{typeLabel(q.type)}</span></td>
                 <td className="px-4 py-3"><span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{q.level}</span></td>
                 <td className="px-4 py-3 text-gray-500">{q.score}</td>
                 <td className="px-4 py-3">
