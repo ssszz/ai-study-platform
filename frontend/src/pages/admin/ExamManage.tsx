@@ -402,7 +402,7 @@ export default function ExamManage() {
               <th className="px-4 py-3 font-medium text-gray-500 w-20">时长</th>
               <th className="px-4 py-3 font-medium text-gray-500 w-16">总分</th>
               <th className="px-4 py-3 font-medium text-gray-500 w-16">及格</th>
-              <th className="px-4 py-3 font-medium text-gray-500 w-20">状态</th>
+              <th className="px-4 py-3 font-medium text-gray-500 w-24">状态</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -413,7 +413,7 @@ export default function ExamManage() {
                 <td className="px-4 py-3 text-gray-500">{e.time_limit_minutes}分钟</td>
                 <td className="px-4 py-3 text-gray-500">{e.total_score}</td>
                 <td className="px-4 py-3 text-gray-500">{e.pass_score}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 whitespace-nowrap">
                   <span className={`text-xs px-2 py-0.5 rounded-full ${e.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                     {e.status === 'published' ? '已发布' : e.status}
                   </span>
