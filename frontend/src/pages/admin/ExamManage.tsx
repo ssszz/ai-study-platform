@@ -246,10 +246,18 @@ export default function ExamManage() {
           <div className="grid grid-cols-4 gap-3">
             <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="考试名称" className="px-3 py-2 border border-gray-300 rounded-lg text-sm col-span-2" />
-            <input type="number" value={form.time_limit_minutes} onChange={(e) => setForm({ ...form, time_limit_minutes: Number(e.target.value) })}
-              placeholder="时长(分钟)" className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-            <input type="number" value={form.pass_score} onChange={(e) => setForm({ ...form, pass_score: Number(e.target.value) })}
-              placeholder="及格分数" className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+            <label className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+              <span className="text-gray-400 shrink-0">时长</span>
+              <input type="number" value={form.time_limit_minutes} onChange={(e) => setForm({ ...form, time_limit_minutes: Number(e.target.value) })}
+                className="w-full text-right outline-none" min={1} />
+              <span className="text-gray-400 shrink-0">分钟</span>
+            </label>
+            <label className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+              <span className="text-gray-400 shrink-0">及格</span>
+              <input type="number" value={form.pass_score} onChange={(e) => setForm({ ...form, pass_score: Number(e.target.value) })}
+                className="w-full text-right outline-none" min={1} />
+              <span className="text-gray-400 shrink-0">分</span>
+            </label>
           </div>
           <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
             placeholder="考试描述（可选）" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
