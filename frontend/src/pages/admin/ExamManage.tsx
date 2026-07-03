@@ -196,11 +196,16 @@ export default function ExamManage() {
 
   const handleCreate = async () => {
     if (form.question_ids.length === 0) { alert('请至少选择一道题目'); return; }
-    await api.post('/exams', form);
-    setShowForm(false);
-    setForm({ title: '', description: '', time_limit_minutes: 30, pass_score: 60, question_ids: [] });
-    setDistInputs({});
-    fetchExams();
+    if (!form.title.trim()) { alert('请输入考试名称'); return; }
+    try {
+      await api.post('/exams', form);
+      setShowForm(false);
+      setForm({ title: '', description: '', time_limit_minutes: 30, pass_score: 60, question_ids: [] });
+      setDistInputs({});
+      fetchExams();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || '创建失败，请检查网络连接后重试');
+    }
   };
 
   const toggleQuestion = (qid: number) => {
@@ -382,7 +387,7 @@ export default function ExamManage() {
           )}
 
           <div className="flex gap-2 pt-2 border-t border-gray-100">
-            <button onClick={handleCreate} className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">创建考试</button>
+            <button onClick={handleCreate} className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">确定</button>
             <button onClick={() => { setShowForm(false); setDistInputs({}); }} className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm">取消</button>
           </div>
         </div>
